@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Combat Timer - Tactical Fitness Pro</title>
+    <style>
+        :root {
+            --bg-color: #0a0a0a;
+            --card-color: #121212;
+            --border-color: #262626;
+            --text-main: #ffffff;
+            --text-muted: #a3a3a3;
+            --action-color: #22c55e;
+            --pause-color: #ef4444;
+            --accent-color: #eab308;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 15px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background-color: var(--card-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        .alert {
+            background-color: rgba(239, 68, 68, 0.15);
+            border: 1px solid var(--pause-color);
+            color: #fca5a5;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .header h1 {
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .header .meta {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: bold;
+        }
+
+        .round-indicator {
+            text-align: center;
+            text-transform: uppercase;
+            color: var(--accent-color);
+            font-weight: 800;
+            font-size: 0.95rem;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .timer-display {
+            font-size: 4.5rem;
+            font-weight: 800;
+            text-align: center;
+            line-height: 1;
+            margin-bottom: 10px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .phase-badge {
+            text-align: center;
+            background-color: #1e1e1e;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 1rem;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            text-transform: uppercase;
+        }
+
+        .phase-badge.action {
+            color: var(--action-color);
+            border-color: rgba(34, 197, 94, 0.4);
+            background-color: rgba(34, 197, 94, 0.05);
+        }
+
+        .phase-badge.pause {
+            color: var(--pause-color);
+            border-color: rgba(239, 68, 68, 0.4);
+            background-color: rgba(239, 68, 68, 0.05);
+        }
+
+        .preview-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #1a1a1a;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            min-height: 320px;
+            padding: 15px;
+            margin-bottom: 20px;
+            position: relative;
+            transition: border-color 0.3s;
+        }
+
+        /* Video Player Styling */
+        .video-container {
+            width: 100%;
+            max-width: 280px;
+            height: 160px;
+            margin-bottom: 15px;
+            display: none;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            background-color: #000;
+        }
+
+        .video-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .kegel-circle {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background-color: transparent;
+            border: 6px solid var(--accent-color);
+            display: none;
+            box-shadow: 0 0 15px rgba(234, 179, 8, 0.3);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .kegel-circle.contract {
+            transform: scale(1.3);
+            border-color: var(--action-color);
+            background-color: rgba(34, 197, 94, 0.2);
+            box-shadow: 0 0 25px rgba(34, 197, 94, 0.6);
+        }
+
+        .kegel-circle.relax {
+            transform: scale(0.85);
+            border-color: var(--pause-color);
+            background-color: rgba(239, 68, 68, 0.1);
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
+        }
+
+        .kegel-text {
+            margin-top: 15px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: none;
+            text-align: center;
+        }
+
+        .exercise-instructions {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 8px;
+            max-width: 90%;
+            line-height: 1.3;
+            font-style: italic;
+        }
+
+        .next-up {
+            font-size: 0.8rem;
+            color: #71717a;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background-color: #262626;
+            color: var(--text-main);
+            border: 1px solid #3f3f46;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn:active { transform: scale(0.98); }
+
+        .btn-start {
+            background-color: #1e3a1e;
+            border-color: var(--action-color);
+            color: #bef264;
+        }
+
+        .btn-start.running {
+            background-color: #3b3f10;
+            border-color: var(--accent-color);
+            color: #fef08a;
+        }
+
+        .btn-reset {
+            background-color: #3a1e1e;
+            border-color: var(--pause-color);
+            color: #fca5a5;
+        }
+
+        .exercise-list-container {
+            border-top: 1px solid var(--border-color);
+            padding-top: 15px;
+        }
+
+        .exercise-list-container h3 {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        .exercise-item {
+            display: flex;
+            align-items: center;
+            background-color: #171717;
+            padding: 10px 12px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            border: 1px solid var(--border-color);
+            font-size: 0.9rem;
+        }
+
+        .exercise-item .num {
+            font-weight: bold;
+            color: var(--accent-color);
+            margin-right: 12px;
+            width: 15px;
+        }
+
+        .exercise-item .tag {
+            margin-left: auto;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .tag-pwr { background-color: #2e1065; color: #ddd6fe; }
+        .tag-core { background-color: #064e3b; color: #a7f3d0; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div id="reminder-alert" class="alert">⚠️ ACHTUNG: Letztes Training über 48h her! Zeit für Action!</div>
+
+        <div class="header">
+            <h1>Combat Timer</h1>
+            <div class="meta">GESAMT: 20:00</div>
+        </div>
+
+        <div class="round-indicator" id="round-title">Bereitmachen</div>
+        <div class="timer-display" id="main-timer">20:00</div>
+        <div class="phase-badge" id="phase-badge">Drücke Start für die Session</div>
+
+        <div class="preview-area" id="preview-box">
+            <div class="video-container" id="video-wrapper">
+                <video id="exercise-video" loop muted playsinline></video>
+            </div>
+            
+            <div id="exercise-name" style="font-weight: bold; font-size: 1.3rem; text-align: center; padding: 0 10px; color: #fff;">Generiere Workout...</div>
+            <div class="exercise-instructions" id="exercise-guide">Lade Ausführungstipps...</div>
+            <div class="next-up" id="next-up-text">Nächste Übung: --</div>
+            
+            <div class="kegel-circle" id="kegel-ball"></div>
+            <div class="kegel-text" id="kegel-status">Anspannen</div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-start" id="btn-start">Start</button>
+            <button class="btn btn-reset" id="btn-reset">Reset</button>
+        </div>
+
+        <div class="exercise-list-container">
+            <h3>Heutiger Schlachtplan (Wissenschaftlicher Mix)</h3>
+            <div id="routine-list"></div>
+        </div>
+    </div>
+
+    <script>
+        // Strukturierte SmartWorkout-Datenbank mit direkten GitHub-Raw-Video-Pfaden
+        const EXERCISE_DATABASE = {
+            cardio: [
+                { name: "Liegestütz mit Sprung", guide: "Aus der hohen Plank in den Liegestütz absenken, beim Hochdrücken explosiv mit den Füßen nach außen springen.", video: "https://raw.githubusercontent.com/0808Daniel/combat-timer/main/liegestutz_sprung.mp4" },
+                { name: "Superman-Liegestütz", guide: "Während du die Brust senkst, ziehst du abwechselnd das Knie explosiv seitlich zum Ellenbogen.", video: "https://raw.githubusercontent.com/0808Daniel/combat-timer/main/superman_liegestutz.mp4" }
+            ],
+            push: [
+                { name: "Einarmiger Liegestütz", guide: "Füße breit aufstellen. Eine Hand direkt unter der Schulter platzieren, Rumpf absolut stabil gegen die Rotation halten.", video: "https://raw.githubusercontent.com/0808Daniel/combat-timer/main/einarmiger_liegestutz.mp4" },
+                { name: "Knöchel-Liegestütz", guide: "Ausführung stabil auf den Fäusten. Stärkt die Handgelenke, Unterarme und maximiert die Faustgelenksstabilität.", video: "https://raw.githubusercontent.com/0808Daniel/combat-timer/main/knochel_liegestutz.mp4" }
+            ],
+            legs: [
+                { name: "Korean Dips", guide: "An den Barren tief absenken, am tiefsten Punkt den Körper kontrolliert in die Horizontale nach hinten bringen.", video: "https://raw.githubusercontent.com/0808Daniel/combat-timer/main/korean_dips.mp4" },
+                { name: "Tiefer Liegestütz an Parallelbarren", guide: "Auf Barrengriffen maximal tief absenken, um den Bewegungsumfang und die Dehnung der Brust zu vergrößern.", video: "https://raw.githubusercontent.com/0808Daniel/combat-timer/main/tiefer_liegestutz.mp4" }
+            ],
+            core_power: [
+                { name: "Umgekehrter Handgelenk-Liegestütz", guide: "Unterer Liegestütz, bei dem die Finger zu den Knien zeigen. Enorme Belastung für Unterarme und Handgelenke.", video: "https://raw.githubusercontent.com/0808Daniel/combat-timer/main/umgekehrter_handgelenk_liegestutz.mp4" },
+                { name: "Planche Dips", guide: "Körper parallel zum Boden in der Schwebe halten (Hollow Body) und kontrolliert über die Arme absenken.", video: "https://raw.githubusercontent.com/0808Daniel/combat-timer/main/planche_dips.mp4" }
+            ],
+            kegel: [
+                { name: "Beckenboden-Vakuum (Vierfüßler)", guide: "Im Vierfüßlerstand komplett ausatmen, Bauch tief einziehen und den Beckenboden maximal nach innen-oben saugen.", video: null },
+                { name: "Glute Bridges mit Kegel-Hold", guide: "Becken hochdrücken, Gesäß fest anspannen. Oben angekommen den Beckenboden maximal kontrahieren.", video: null },
+                { name: "Tactical Kegel-Intervalle", guide: "Flach auf dem Rücken. Präzise Ansteuerung: Beckenboden wie einen Fahrstuhl über 5 Sekunden nach oben ziehen.", video: null },
+                { name: "Dead Bug (Beckenboden aktiv)", guide: "Rücken flach in den Boden pressen. Diagonale Extremitäten strecken, während der Beckenboden auf Spannung bleibt.", video: null }
+            ]
+        };
+
+        let currentRoutine = [];
+        let workoutInterval = null;
+        let isRunning = false;
+        
+        let totalSeconds = 20 * 60;
+        let currentExerciseIndex = 0;
+        let phaseSeconds = 45;
+        let isActionPhase = true;
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function beep(freq = 440, duration = 0.1) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function checkLastTraining() {
+            const lastTraining = localStorage.getItem('lastCombatWorkout');
+            const alertBox = document.getElementById('reminder-alert');
+            if (lastTraining) {
+                const diffTime = Math.abs(new Date() - new Date(lastTraining));
+                const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
+                if (diffHours >= 48) alertBox.style.display = 'block';
+            } else {
+                alertBox.style.display = 'block';
+            }
+        }
+
+        function generateWorkout() {
+            currentRoutine = [];
+            let categories = ['cardio', 'push', 'legs', 'core_power'];
+            categories.sort(() => Math.random() - 0.5);
+            
+            categories.forEach(cat => {
+                const pool = EXERCISE_DATABASE[cat];
+                const randomEx = pool[Math.floor(Math.random() * pool.length)];
+                currentRoutine.push({ name: randomEx.name, guide: randomEx.guide, type: 'Power', videoUrl: randomEx.video });
+            });
+
+            const backupCat = Math.random() > 0.5 ? 'cardio' : 'legs';
+            let backupPool = EXERCISE_DATABASE[backupCat].filter(ex => !currentRoutine.some(r => r.name === ex.name));
+            const selectedBackup = backupPool[Math.floor(Math.random() * backupPool.length)];
+            currentRoutine.push({ name: selectedBackup.name, guide: selectedBackup.guide, type: 'Power', videoUrl: selectedBackup.video });
+
+            let fullCalisthenicsTrack = [];
+            for(let r=0; r<3; r++) {
+                currentRoutine.forEach(ex => fullCalisthenicsTrack.push({...ex, round: r+1}));
+            }
+
+            let shuffledKegels = [...EXERCISE_DATABASE.kegel].sort(() => Math.random() - 0.5);
+            let finisherTrack = [];
+            for(let i=0; i<5; i++) {
+                finisherTrack.push({ name: shuffledKegels[i].name, guide: shuffledKegels[i].guide, type: 'Core', round: 'Finisher', videoUrl: null });
+            }
+
+            currentRoutine = [...fullCalisthenicsTrack, ...finisherTrack];
+            renderRoutineList();
+            updateUI();
+        }
+
+        function renderRoutineList() {
+            const listContainer = document.getElementById('routine-list');
+            listContainer.innerHTML = '';
+            
+            let displayItems = [];
+            let seen = new Set();
+            currentRoutine.forEach(item => {
+                if(item.type === 'Power' && !seen.has(item.name)) {
+                    seen.add(item.name);
+                    displayItems.push(item);
+                }
+            });
+            let kegelCount = 0;
+            currentRoutine.forEach(item => {
+                if(item.type === 'Core' && kegelCount < 2) {
+                    displayItems.push(item);
+                    kegelCount++;
+                }
+            });
+
+            displayItems.forEach((ex, index) => {
+                const item = document.createElement('div');
+                item.className = 'exercise-item';
+                item.innerHTML = `
+                    <span class="num">${index + 1}</span>
+                    <span>${ex.name}</span>
+                    <span class="tag ${ex.type === 'Power' ? 'tag-pwr' : 'tag-core'}">${ex.type === 'Power' ? 'Power' : 'Kegel'}</span>
+                `;
+                listContainer.appendChild(item);
+            });
+        }
+
+        function updateUI() {
+            const current = currentRoutine[currentExerciseIndex];
+            
+            let totalMin = Math.floor(totalSeconds / 60);
+            let totalSec = totalSeconds % 60;
+            document.getElementById('main-timer').innerText = 
+                `${totalMin.toString().padStart(2, '0')}:${totalSec.toString().padStart(2, '0')}`;
+
+            if (current.round === 'Finisher') {
+                document.getElementById('round-title').innerText = `🔒 Standhaftigkeits-Finisher`;
+            } else {
+                document.getElementById('round-title').innerText = `Runde ${current.round} von 3`;
+            }
+
+            const badge = document.getElementById('phase-badge');
+            if(isActionPhase) {
+                badge.innerText = `ACTION: ${phaseSeconds}s`;
+                badge.className = "phase-badge action";
+                document.getElementById('preview-box').style.borderColor = "var(--action-color)";
+            } else {
+                badge.innerText = `PAUSE: ${phaseSeconds}s`;
+                badge.className = "phase-badge pause";
+                document.getElementById('preview-box').style.borderColor = "var(--border-color)";
+            }
+
+            const nextEx = currentRoutine[currentExerciseIndex + 1];
+            document.getElementById('next-up-text').innerText = nextEx ? `Nächste Übung: ${nextEx.name}` : "Endspurt!";
+
+            const videoWrapper = document.getElementById('video-wrapper');
+            const videoEl = document.getElementById('exercise-video');
+            const nameEl = document.getElementById('exercise-name');
+            const guideEl = document.getElementById('exercise-guide');
+            const kegelBall = document.getElementById('kegel-ball');
+            const kegelStatus = document.getElementById('kegel-status');
+
+            if (current.type === 'Core' && isActionPhase) {
+                videoWrapper.style.display = 'none';
+                videoEl.pause();
+                nameEl.innerText = current.name;
+                guideEl.innerText = current.guide;
+                kegelBall.style.display = 'block';
+                kegelStatus.style.display = 'block';
+                
+                if (phaseSeconds % 10 >= 5) {
+                    kegelBall.className = "kegel-circle contract";
+                    kegelStatus.innerText = "🔥 5s ANSPANNEN!";
+                    kegelStatus.style.color = "var(--action-color)";
+                } else {
+                    kegelBall.className = "kegel-circle relax";
+                    kegelStatus.innerText = "🌬️ 5s ENTSPANNEN";
+                    kegelStatus.style.color = "var(--text-muted)";
+                }
+            } else {
+                kegelBall.style.display = 'none';
+                kegelStatus.style.display = 'none';
+                
+                if (isActionPhase && current.videoUrl) {
+                    videoWrapper.style.display = 'block';
+                    if (videoEl.src !== current.videoUrl) {
+                        videoEl.src = current.videoUrl;
+                        videoEl.load();
+                    }
+                    if (isRunning) {
+                        videoEl.play().catch(e => console.log("Autoplay blockiert:", e));
+                    }
+                    nameEl.innerText = current.name;
+                    guideEl.innerText = current.guide;
+                } else {
+                    videoWrapper.style.display = 'none';
+                    videoEl.pause();
+                    if (!isActionPhase) {
+                        nameEl.innerText = `Gleich: ${current.name}`;
+                        guideEl.innerText = "Kurz durchatmen und vorbereiten...";
+                    } else {
+                        nameEl.innerText = current.name;
+                        guideEl.innerText = current.guide;
+                    }
+                }
+            }
+        }
+
+        function tick() {
+            if (totalSeconds <= 0) {
+                clearInterval(workoutInterval);
+                beep(880, 0.8);
+                document.getElementById('phase-badge').innerText = "SESSION BESTANDEN!";
+                localStorage.setItem('lastCombatWorkout', new Date().toISOString());
+                document.getElementById('reminder-alert').style.display = 'none';
+                return;
+            }
+
+            totalSeconds--;
+            phaseSeconds--;
+
+            if (phaseSeconds <= 3 && phaseSeconds > 0) {
+                beep(440, 0.08);
+            }
+
+            if (phaseSeconds <= 0) {
+                beep(660, 0.3);
+                if (isActionPhase) {
+                    isActionPhase = false;
+                    phaseSeconds = 15;
+                } else {
+                    isActionPhase = true;
+                    phaseSeconds = 45;
+                    currentExerciseIndex++;
+                }
+            }
+
+            updateUI();
+        }
+
+        document.getElementById('btn-start').addEventListener('click', function() {
+            const videoEl = document.getElementById('exercise-video');
+            if (!isRunning) {
+                isRunning = true;
+                this.innerText = "Pause";
+                this.className = "btn btn-start running";
+                if(audioCtx.state === 'suspended') audioCtx.resume();
+                workoutInterval = setInterval(tick, 1000);
+                if (document.getElementById('video-wrapper').style.display === 'block') {
+                    videoEl.play().catch(e => console.log(e));
+                }
+            } else {
+                isRunning = false;
+                this.innerText = "Start";
+                this.className = "btn btn-start";
+                clearInterval(workoutInterval);
+                videoEl.pause();
+            }
+        });
+
+        document.getElementById('btn-reset').addEventListener('click', function() {
+            clearInterval(workoutInterval);
+            isRunning = false;
+            const startBtn = document.getElementById('btn-start');
+            startBtn.innerText = "Start";
+            startBtn.className = "btn btn-start";
+            
+            totalSeconds = 20 * 60;
+            currentExerciseIndex = 0;
+            phaseSeconds = 45;
+            isActionPhase = true;
+            
+            generateWorkout();
+        });
+
+        checkLastTraining();
+        generateWorkout();
+    </script>
+</body>
+</html>
