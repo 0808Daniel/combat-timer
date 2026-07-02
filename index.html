@@ -135,7 +135,6 @@
             transition: border-color 0.3s;
         }
 
-        /* Video Player Styling */
         .video-container {
             width: 100%;
             max-width: 280px;
@@ -299,11 +298,11 @@
 
         <div class="header">
             <h1>Combat Timer</h1>
-            <div class="meta">GESAMT: 20:00</div>
+            <div class="meta">GESAMT: 15:00</div>
         </div>
 
         <div class="round-indicator" id="round-title">Bereitmachen</div>
-        <div class="timer-display" id="main-timer">20:00</div>
+        <div class="timer-display" id="main-timer">15:00</div>
         <div class="phase-badge" id="phase-badge">Drücke Start für die Session</div>
 
         <div class="preview-area" id="preview-box">
@@ -325,29 +324,28 @@
         </div>
 
         <div class="exercise-list-container">
-            <h3>Heutiger Schlachtplan (Wissenschaftlicher Mix)</h3>
+            <h3>Heutiger Schlachtplan (15 Min. Reiner Boden-Mix)</h3>
             <div id="routine-list"></div>
         </div>
     </div>
 
     <script>
-        // Strukturierte SmartWorkout-Datenbank mit direkten GitHub-Raw-Video-Pfaden
         const EXERCISE_DATABASE = {
             cardio: [
-                { name: "Liegestütz mit Sprung", guide: "Aus der hohen Plank in den Liegestütz absenken, beim Hochdrücken explosiv mit den Füßen nach außen springen.", video: "https://raw.githubusercontent.com/0808Daniel/combat-timer/main/liegestutz_sprung.mp4" },
+                { name: "Liegestütz mit Sprung", guide: "Aus der Plank in den Liegestütz absenken, beim Hochdrücken explosiv mit den Füßen nach außen springen.", video: "https://raw.githubusercontent.com/0808Daniel/combat-timer/main/liegestutz_sprung.mp4" },
                 { name: "Superman-Liegestütz", guide: "Während du die Brust senkst, ziehst du abwechselnd das Knie explosiv seitlich zum Ellenbogen.", video: "https://raw.githubusercontent.com/0808Daniel/combat-timer/main/superman_liegestutz.mp4" }
             ],
             push: [
-                { name: "Einarmiger Liegestütz", guide: "Füße breit aufstellen. Eine Hand direkt unter der Schulter platzieren, Rumpf absolut stabil gegen die Rotation halten.", video: "https://raw.githubusercontent.com/0808Daniel/combat-timer/main/einarmiger_liegestutz.mp4" },
-                { name: "Knöchel-Liegestütz", guide: "Ausführung stabil auf den Fäusten. Stärkt die Handgelenke, Unterarme und maximiert die Faustgelenksstabilität.", video: "https://raw.githubusercontent.com/0808Daniel/combat-timer/main/knochel_liegestutz.mp4" }
+                { name: "Liegestütze (auf Knien)", guide: "Hände unter den Schultern, Hüfte gestreckt. Brust kontrolliert zur Matte absenken und kraftvoll hochdrücken.", video: "https://raw.githubusercontent.com/0808Daniel/combat-timer/main/liegestutz_knie.mp4" },
+                { name: "Knöchel-Liegestütz", guide: "Ausführung stabil auf den Fäusten auf der Matte. Stärkt Handgelenke und Fäuste.", video: "https://raw.githubusercontent.com/0808Daniel/combat-timer/main/knochel_liegestutz.mp4" }
             ],
             legs: [
-                { name: "Korean Dips", guide: "An den Barren tief absenken, am tiefsten Punkt den Körper kontrolliert in die Horizontale nach hinten bringen.", video: "https://raw.githubusercontent.com/0808Daniel/combat-timer/main/korean_dips.mp4" },
-                { name: "Tiefer Liegestütz an Parallelbarren", guide: "Auf Barrengriffen maximal tief absenken, um den Bewegungsumfang und die Dehnung der Brust zu vergrößern.", video: "https://raw.githubusercontent.com/0808Daniel/combat-timer/main/tiefer_liegestutz.mp4" }
+                { name: "Tiefe Kniebeuge (Squat)", guide: "Füße schulterbreit. Hüfte tief unter Kniehöhe absenken, Fersen bleiben fest auf der Matte.", video: "https://raw.githubusercontent.com/0808Daniel/combat-timer/main/tiefe_kniebeuge.mp4" },
+                { name: "Ausfallschritte wechselnd", guide: "Großer Schritt nach vorn, hinteres Knie senkt sich kontrolliert bis kurz vor die Matte ab.", video: "https://raw.githubusercontent.com/0808Daniel/combat-timer/main/ausfallschritte.mp4" }
             ],
             core_power: [
-                { name: "Umgekehrter Handgelenk-Liegestütz", guide: "Unterer Liegestütz, bei dem die Finger zu den Knien zeigen. Enorme Belastung für Unterarme und Handgelenke.", video: "https://raw.githubusercontent.com/0808Daniel/combat-timer/main/umgekehrter_handgelenk_liegestutz.mp4" },
-                { name: "Planche Dips", guide: "Körper parallel zum Boden in der Schwebe halten (Hollow Body) und kontrolliert über die Arme absenken.", video: "https://raw.githubusercontent.com/0808Daniel/combat-timer/main/planche_dips.mp4" }
+                { name: "Umgekehrter Handgelenk-Liegestütz", guide: "Unterer Liegestütz auf Knien oder Zehen, Finger zeigen nach hinten zu den Knien.", video: "https://raw.githubusercontent.com/0808Daniel/combat-timer/main/umgekehrter_handgelenk_liegestutz.mp4" },
+                { name: "Schwimmer (Rückenstrecker)", guide: "Bauchlage auf der Matte. Arme und Beine anheben und paddelnde Bewegungen ausführen.", video: "https://raw.githubusercontent.com/0808Daniel/combat-timer/main/schwimmer.mp4" }
             ],
             kegel: [
                 { name: "Beckenboden-Vakuum (Vierfüßler)", guide: "Im Vierfüßlerstand komplett ausatmen, Bauch tief einziehen und den Beckenboden maximal nach innen-oben saugen.", video: null },
@@ -361,25 +359,28 @@
         let workoutInterval = null;
         let isRunning = false;
         
-        let totalSeconds = 20 * 60;
+        let totalSeconds = 15 * 60; 
         let currentExerciseIndex = 0;
         let phaseSeconds = 45;
         let isActionPhase = true;
 
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let audioCtx = null;
 
         function beep(freq = 440, duration = 0.1) {
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'sine';
-            osc.frequency.value = freq;
-            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + duration);
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch(e) {}
         }
 
         function checkLastTraining() {
@@ -396,32 +397,24 @@
 
         function generateWorkout() {
             currentRoutine = [];
-            let categories = ['cardio', 'push', 'legs', 'core_power'];
-            categories.sort(() => Math.random() - 0.5);
-            
-            categories.forEach(cat => {
+            let baseExercises = [];
+
+            ['cardio', 'push', 'legs', 'core_power'].forEach(cat => {
                 const pool = EXERCISE_DATABASE[cat];
                 const randomEx = pool[Math.floor(Math.random() * pool.length)];
-                currentRoutine.push({ name: randomEx.name, guide: randomEx.guide, type: 'Power', videoUrl: randomEx.video });
+                baseExercises.push({ name: randomEx.name, guide: randomEx.guide, type: 'Power', videoUrl: randomEx.video });
             });
 
-            const backupCat = Math.random() > 0.5 ? 'cardio' : 'legs';
-            let backupPool = EXERCISE_DATABASE[backupCat].filter(ex => !currentRoutine.some(r => r.name === ex.name));
-            const selectedBackup = backupPool[Math.floor(Math.random() * backupPool.length)];
-            currentRoutine.push({ name: selectedBackup.name, guide: selectedBackup.guide, type: 'Power', videoUrl: selectedBackup.video });
-
-            let fullCalisthenicsTrack = [];
             for(let r=0; r<3; r++) {
-                currentRoutine.forEach(ex => fullCalisthenicsTrack.push({...ex, round: r+1}));
+                baseExercises.forEach(ex => currentRoutine.push({...ex, round: r+1}));
             }
 
             let shuffledKegels = [...EXERCISE_DATABASE.kegel].sort(() => Math.random() - 0.5);
-            let finisherTrack = [];
-            for(let i=0; i<5; i++) {
-                finisherTrack.push({ name: shuffledKegels[i].name, guide: shuffledKegels[i].guide, type: 'Core', round: 'Finisher', videoUrl: null });
+            for(let i=0; i<3; i++) {
+                let kegelEx = shuffledKegels[i % shuffledKegels.length];
+                currentRoutine.push({ name: kegelEx.name, guide: kegelEx.guide, type: 'Core', round: 'Finisher', videoUrl: null });
             }
 
-            currentRoutine = [...fullCalisthenicsTrack, ...finisherTrack];
             renderRoutineList();
             updateUI();
         }
@@ -459,6 +452,7 @@
         }
 
         function updateUI() {
+            if (currentExerciseIndex >= currentRoutine.length) return;
             const current = currentRoutine[currentExerciseIndex];
             
             let totalMin = Math.floor(totalSeconds / 60);
@@ -466,21 +460,33 @@
             document.getElementById('main-timer').innerText = 
                 `${totalMin.toString().padStart(2, '0')}:${totalSec.toString().padStart(2, '0')}`;
 
-            if (current.round === 'Finisher') {
-                document.getElementById('round-title').innerText = `🔒 Standhaftigkeits-Finisher`;
+            const roundTitleEl = document.getElementById('round-title');
+            if (!isRunning && totalSeconds === 15 * 60) {
+                roundTitleEl.innerText = "Bereitmachen";
+            } else if (current.round === 'Finisher') {
+                roundTitleEl.innerText = `🔒 Standhaftigkeits-Finisher`;
             } else {
-                document.getElementById('round-title').innerText = `Runde ${current.round} von 3`;
+                roundTitleEl.innerText = `Runde ${current.round || 1} von 3`;
             }
 
             const badge = document.getElementById('phase-badge');
-            if(isActionPhase) {
-                badge.innerText = `ACTION: ${phaseSeconds}s`;
+            if (!isRunning && totalSeconds === 15 * 60) {
+                badge.innerText = "Drücke Start für die Session";
+                badge.className = "phase-badge";
+            } else if (current.round === 'Finisher') {
+                badge.innerText = `FINISHER WORK: ${phaseSeconds}s`;
                 badge.className = "phase-badge action";
-                document.getElementById('preview-box').style.borderColor = "var(--action-color)";
+                document.getElementById('preview-box').style.borderColor = "var(--accent-color)";
             } else {
-                badge.innerText = `PAUSE: ${phaseSeconds}s`;
-                badge.className = "phase-badge pause";
-                document.getElementById('preview-box').style.borderColor = "var(--border-color)";
+                if(isActionPhase) {
+                    badge.innerText = `ACTION: ${phaseSeconds}s`;
+                    badge.className = "phase-badge action";
+                    document.getElementById('preview-box').style.borderColor = "var(--action-color)";
+                } else {
+                    badge.innerText = `PAUSE: ${phaseSeconds}s`;
+                    badge.className = "phase-badge pause";
+                    document.getElementById('preview-box').style.borderColor = "var(--border-color)";
+                }
             }
 
             const nextEx = currentRoutine[currentExerciseIndex + 1];
@@ -493,7 +499,7 @@
             const kegelBall = document.getElementById('kegel-ball');
             const kegelStatus = document.getElementById('kegel-status');
 
-            if (current.type === 'Core' && isActionPhase) {
+            if (current.type === 'Core') {
                 videoWrapper.style.display = 'none';
                 videoEl.pause();
                 nameEl.innerText = current.name;
@@ -558,13 +564,20 @@
 
             if (phaseSeconds <= 0) {
                 beep(660, 0.3);
-                if (isActionPhase) {
-                    isActionPhase = false;
-                    phaseSeconds = 15;
-                } else {
-                    isActionPhase = true;
-                    phaseSeconds = 45;
+                const current = currentRoutine[currentExerciseIndex];
+                
+                if (current.round === 'Finisher') {
                     currentExerciseIndex++;
+                    phaseSeconds = 60;
+                } else {
+                    if (isActionPhase) {
+                        isActionPhase = false;
+                        phaseSeconds = 15; 
+                    } else {
+                        isActionPhase = true;
+                        phaseSeconds = 45; 
+                        currentExerciseIndex++;
+                    }
                 }
             }
 
@@ -572,6 +585,7 @@
         }
 
         document.getElementById('btn-start').addEventListener('click', function() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             const videoEl = document.getElementById('exercise-video');
             if (!isRunning) {
                 isRunning = true;
@@ -582,6 +596,7 @@
                 if (document.getElementById('video-wrapper').style.display === 'block') {
                     videoEl.play().catch(e => console.log(e));
                 }
+                updateUI();
             } else {
                 isRunning = false;
                 this.innerText = "Start";
@@ -598,7 +613,7 @@
             startBtn.innerText = "Start";
             startBtn.className = "btn btn-start";
             
-            totalSeconds = 20 * 60;
+            totalSeconds = 15 * 60;
             currentExerciseIndex = 0;
             phaseSeconds = 45;
             isActionPhase = true;
